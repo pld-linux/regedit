@@ -1,0 +1,12 @@
+--- regedit-0.3/src/src.pro	2004-11-09 22:11:19.484976888 +0100
++++ regedit-0.3/src/src.pro~	2004-11-09 22:13:39.801645512 +0100
+@@ -5,8 +5,7 @@
+ 
+ LIBS += -lregistry -lkdb
+ TARGET = regedit 
+-CONFIG += debug \
+-          warn_on \
++CONFIG += warn_on \
+           qt \
+           thread 
+ TEMPLATE = app 
