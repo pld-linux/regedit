@@ -9,6 +9,7 @@ Source0:	http://members.aon.at/gregorburger/%{name}-%{version}.tar.gz
 # regedit builds, but segfaults during key's values manipulation.
 Patch0:		%{name}-registry2elektra_tmp_hack.patch
 Patch1:		%{name}-CFLAGS.patch
+Patch2:		%{name}-SIGSEGV_hack.patch
 Group:		System
 License:	GPL
 URL:		http://www.livejournal.com/users/gregorburger/
@@ -24,10 +25,11 @@ A GUI to edit Linux Registry keys, based on QT
 %setup -q
 %patch0 -p1
 %patch1 -p1
+%patch2 -p1
 
 %build
 qmake regedit.pro
-%{__make} QTDIR=%{_prefix} CC="%{__cc}" CFLAGS="%{rpmcflags}"
+%{__make} QTDIR=%{_prefix} CC="%{__cc}" CXX="%{__cxx}" CFLAGS="%{rpmcflags}" CXXFLAGS="%{rpmcflags}"
 
 %install
 rm -rf $RPM_BUILD_ROOT
@@ -35,9 +37,8 @@ rm -rf $RPM_BUILD_ROOT
 install -d $RPM_BUILD_ROOT%{_bindir}
 install src/regedit $RPM_BUILD_ROOT%{_bindir}
 
-# below should be fixed - I leave it for now
-install -d $RPM_BUILD_ROOT%{_datadir}/lib/regedit
-install icons/*.png $RPM_BUILD_ROOT%{_datadir}/lib/regedit
+install -d $RPM_BUILD_ROOT%{_datadir}/regedit
+install icons/*.png $RPM_BUILD_ROOT%{_datadir}/regedit
 
 install -d $RPM_BUILD_ROOT%{_datadir}/applications
 install regedit.desktop $RPM_BUILD_ROOT%{_datadir}/applications/
@@ -47,12 +48,16 @@ rm -rf $RPM_BUILD_ROOT
 
 %post
 # Set the icons directory for myself
-#rg set system/sw/regedit/gui/iconDir "/usr/share/lib/regedit/icons"
+kdb set -t string system/sw/regedit/gui/iconDir "/usr/share/regedit"
+
+%postun
+# Destroy the icons directory for myself
+kdb rm system/sw/regedit/gui/iconDir || :
+kdb rm system/sw/regedit/gui || :
+kdb rm system/sw/regedit || :
 
 %files
 %defattr(644,root,root,755)
 %attr(755,root,root) %{_bindir}/*
-# below should be fixed - I leave it for now
-%{_datadir}/lib/regedit
-
+%{_datadir}/regedit
 %{_datadir}/applications/*
