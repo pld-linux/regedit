@@ -1,0 +1,695 @@
+diff -Nurb b/compile.sh n/compile.sh
+--- b/compile.sh	2004-07-24 19:34:54.000000000 +0200
++++ n/compile.sh	2004-11-09 18:08:04.683558608 +0100
+@@ -26,5 +26,5 @@
+ moc newkeydialogimpl.h > newkeydialogimpl.moc.cpp
+ moc newdialog.h > newdialog.moc.cpp
+ 
+-cc -I . -I $QTDIR/include -L $QTDIR/lib/ -L /lib  -l $QTLIB -lregistry -o regedit main.cpp mainwindowimpl.cpp mainwidget.cpp mainwindowimpl.moc.cpp mainwidget.moc.cpp newkeydialogimpl.moc.cpp newkeydialogimpl.cpp newdialog.moc.cpp newdialog.cpp
++cc -I . -I $QTDIR/include -L $QTDIR/lib/ -L /lib  -l $QTLIB -lregistry -lkdb -o regedit main.cpp mainwindowimpl.cpp mainwidget.cpp mainwindowimpl.moc.cpp mainwidget.moc.cpp newkeydialogimpl.moc.cpp newkeydialogimpl.cpp newdialog.moc.cpp newdialog.cpp
+ 
+diff -Nurb b/src/keyaddcommand.cpp n/src/keyaddcommand.cpp
+--- b/src/keyaddcommand.cpp	2004-08-11 11:25:19.000000000 +0200
++++ n/src/keyaddcommand.cpp	2004-11-09 18:10:04.390360408 +0100
+@@ -50,19 +50,19 @@
+ 	
+ 	switch (newDialog->getType())
+ 	{
+-		case RG_KEY_TYPE_STRING:
++		case KEY_TYPE_STRING:
+ 			item->setPixmap(0, mainWidget->stringIcon);
+ 			if (vlength) keySetString(key, strdup(newDialog->getValue()));
+ 			break;
+-		case RG_KEY_TYPE_BINARY:
++		case KEY_TYPE_BINARY:
+ 			item->setPixmap(0, mainWidget->binaryIcon);
+ 			if (vlength) keySetBinary(key, strdup(newDialog->getValue()), vlength);
+ 			break;
+-		case RG_KEY_TYPE_LINK:
++		case KEY_TYPE_LINK:
+ 			item->setPixmap(0, mainWidget->linkOverlay);
+ 			if (vlength) keySetLink(key, strdup(newDialog->getValue()));
+ 			break;
+-		case RG_KEY_TYPE_DIR:
++		case KEY_TYPE_DIR:
+ 			item->setPixmap(0, mainWidget->dirIcon);
+ 			break;
+ 	}
+@@ -71,17 +71,17 @@
+ 
+ KeyAddCommand::~KeyAddCommand()
+ {
+-	registryOpen();
++	kdbOpen();
+ 	keyClose(key);
+ 	delete key;
+ 	delete item;
+-	registryClose();
++	kdbClose();
+ }
+ 
+ bool KeyAddCommand::execute()
+ {
+-	registryOpen();
+-	if (registrySetKey(key))
++	kdbOpen();
++	if (kdbSetKey(key))
+ 	{
+ 		mainWidget()->showInStatusBar(strerror(errno));
+ 		return false;
+@@ -92,15 +92,15 @@
+ 		//mainWidget()->keyTree->setSelected(item, true);
+ 		return true;
+ 	}
+-	registryClose();
++	kdbClose();
+ }
+ 
+ bool KeyAddCommand::unexecute()
+ {
+-	registryOpen();
++	kdbOpen();
+ 	char *name = new char[keyGetNameSize(key)];
+ 	keyGetName(key, name, keyGetNameSize(key));
+-	if (registryRemove(name))
++	if (kdbRemove(name))
+ 	{
+ 		mainWidget()->showInStatusBar(strerror(errno));
+ 		return false;
+@@ -111,5 +111,5 @@
+ 		return true;
+ 		
+ 	}
+-	registryClose();
++	kdbClose();
+ }
+diff -Nurb b/src/keyaddcommand.h n/src/keyaddcommand.h
+--- b/src/keyaddcommand.h	2004-08-11 10:15:06.000000000 +0200
++++ n/src/keyaddcommand.h	2004-11-09 18:10:04.390360408 +0100
+@@ -24,7 +24,7 @@
+ 
+ extern "C"
+ {
+-	#include <registry.h>
++	#include <kdb.h>
+ }
+ 
+ /**
+diff -Nurb b/src/keymodifycommand.cpp n/src/keymodifycommand.cpp
+--- b/src/keymodifycommand.cpp	2004-08-11 11:25:19.000000000 +0200
++++ n/src/keymodifycommand.cpp	2004-11-09 18:10:04.391360256 +0100
+@@ -32,7 +32,7 @@
+ KeyModifyCommand::KeyModifyCommand(MainWidgetImpl *mainWidget, const char *name)
+  : Command(mainWidget, name), item(mainWidget->keyTree->currentItem())
+ {
+-	registryOpen();
++	kdbOpen();
+ 	
+ 	::Key *selected = this->mainWidget()->getSelected();
+ 	
+@@ -75,7 +75,7 @@
+ 			break;
+ 	}
+ 	
+-	registryClose();
++	kdbClose();
+ }
+ 
+ 
+@@ -90,8 +90,8 @@
+ 
+ bool KeyModifyCommand::execute()
+ {
+-	registryOpen();
+-	if (registrySetKey(newKey))
++	kdbOpen();
++	if (kdbSetKey(newKey))
+ 	{
+ 		mainWidget()->showInStatusBar(strerror(errno));
+ 		mainWidget()->showKeyValues(true);
+@@ -104,8 +104,8 @@
+ 
+ bool KeyModifyCommand::unexecute()
+ {
+-	registryOpen();
+-	if (registrySetKey(oldKey))
++	kdbOpen();
++	if (kdbSetKey(oldKey))
+ 	{
+ 		mainWidget()->showInStatusBar(strerror(errno));
+ 		mainWidget()->showKeyValues(true);
+@@ -113,7 +113,7 @@
+ 	}
+ 	item->setPixmap(0, oldIcon);
+ 	mainWidget()->changeSelected(item);
+-	registryClose();
++	kdbClose();
+ 	return true;
+ }
+ 
+diff -Nurb b/src/keymodifycommand.h n/src/keymodifycommand.h
+--- b/src/keymodifycommand.h	2004-08-11 10:15:06.000000000 +0200
++++ n/src/keymodifycommand.h	2004-11-09 18:10:04.392360104 +0100
+@@ -25,7 +25,7 @@
+ 
+ extern "C"
+ {
+-	#include <registry.h>
++	#include <kdb.h>
+ }
+ /**
+ @author Gregor Burger
+diff -Nurb b/src/keyremovecommand.cpp n/src/keyremovecommand.cpp
+--- b/src/keyremovecommand.cpp	2004-08-11 10:15:06.000000000 +0200
++++ n/src/keyremovecommand.cpp	2004-11-09 18:10:04.392360104 +0100
+@@ -39,33 +39,33 @@
+ 
+ bool KeyRemoveCommand::execute( )
+ {
+-	registryOpen();
++	kdbOpen();
+ 		
+ 	char *name = new char[keyGetNameSize(key)];
+ 	keyGetName(key, name, keyGetNameSize(key));
+ 	
+-	if (registryRemove(name))
++	if (kdbRemove(name))
+ 	{
+ 		mainWidget()->showInStatusBar(strerror(errno));
+ 		return false;
+ 	}
+ 	
+ 	item->setVisible(false);
+-	registryClose();
++	kdbClose();
+ 	return true;
+ }
+ 
+ bool KeyRemoveCommand::unexecute( )
+ {
+-	registryOpen();
+-	if (registrySetKey(key))
++	kdbOpen();
++	if (kdbSetKey(key))
+ 	{
+ 		mainWidget()->showInStatusBar(strerror(errno));
+ 		return false;
+ 	}
+ 	
+ 	item->setVisible(true);
+-	registryClose();
++	kdbClose();
+ 	return true;
+ }
+ 
+diff -Nurb b/src/keyremovecommand.h n/src/keyremovecommand.h
+--- b/src/keyremovecommand.h	2004-08-11 10:15:06.000000000 +0200
++++ n/src/keyremovecommand.h	2004-11-09 18:10:04.393359952 +0100
+@@ -24,7 +24,7 @@
+ 
+ extern "C"
+ {
+-#include <registry.h>
++#include <kdb.h>
+ }
+ 
+ class QListViewItem;
+diff -Nurb b/src/mainwidgetimpl.cpp n/src/mainwidgetimpl.cpp
+--- b/src/mainwidgetimpl.cpp	2004-08-10 14:41:29.000000000 +0200
++++ n/src/mainwidgetimpl.cpp	2004-11-09 18:10:04.396359496 +0100
+@@ -64,11 +64,11 @@
+ 	: MainWidget(parent, name, fl), ignoreTextChanges(false), selected(0), selectedAccess(0), parent( (MainWindowImpl *) parentWidget())
+ {
+ 	types = new int[5];
+-	types[0] = RG_KEY_TYPE_UNDEFINED;
+-	types[1] = RG_KEY_TYPE_LINK;
+-	types[2] = RG_KEY_TYPE_STRING;
+-	types[3] = RG_KEY_TYPE_BINARY;
+-	types[4] = RG_KEY_TYPE_DIR;
++	types[0] = KEY_TYPE_UNDEFINED;
++	types[1] = KEY_TYPE_LINK;
++	types[2] = KEY_TYPE_STRING;
++	types[3] = KEY_TYPE_BINARY;
++	types[4] = KEY_TYPE_DIR;
+ 	int *t;
+ 	t = new int[4];
+ 	ignoreTextChanges = false;		//a flag to indicate wheater the program or the user has edited the fields
+@@ -128,12 +128,12 @@
+ void MainWidgetImpl::updateKeyTree()
+ {
+ 	keyTree->clear();
+-	registryOpen();
++	kdbOpen();
+ 	
+ 	KeySet roots;	
+ 	ksInit(&roots);
+ 	
+-	registryGetRootKeys(&roots);
++	kdbGetRootKeys(&roots);
+ 	::Key *mover;
+ 	
+ 	mover = roots.start;
+@@ -145,23 +145,23 @@
+ 		
+ 		switch (keyGetType(mover))
+ 		{
+-			case RG_KEY_TYPE_DIR:
++			case KEY_TYPE_DIR:
+ 				item->setPixmap(0, dirIcon);	
+ 				break;
+-			case RG_KEY_TYPE_LINK:
++			case KEY_TYPE_LINK:
+ 				item->setPixmap(0, linkOverlay);
+ 				break;
+-			case RG_KEY_TYPE_STRING:
++			case KEY_TYPE_STRING:
+ 				item->setPixmap(0, stringIcon);
+ 				break;
+-			case RG_KEY_TYPE_BINARY:
++			case KEY_TYPE_BINARY:
+ 				item->setPixmap(0, binaryIcon);
+ 		}
+ 		mover = mover->next;
+ 	}
+ 	
+ 	ksClose(&roots);
+-	registryClose();
++	kdbClose();
+ }
+ 
+ /**
+@@ -175,7 +175,7 @@
+ 	
+ 	ksInit(&keys);
+ 	
+-	registryGetChildKeys(root->key, &keys, RG_O_DIR|RG_O_SORT);
++	kdbGetChildKeys(root->key, &keys, KDB_O_DIR|KDB_O_SORT);
+ 	
+ 	::Key *mover = keys.start;
+ 	
+@@ -192,17 +192,17 @@
+ 	
+ 			switch (type)
+ 			{
+-				case RG_KEY_TYPE_DIR:
++				case KEY_TYPE_DIR:
+ 					subItem->setPixmap(0, dirIcon);
+ 					isDir = true;
+ 					break;
+-				case RG_KEY_TYPE_LINK:
++				case KEY_TYPE_LINK:
+ 					subItem->setPixmap(0, linkOverlay);
+ 					break;
+-				case RG_KEY_TYPE_STRING:
++				case KEY_TYPE_STRING:
+ 					subItem->setPixmap(0, stringIcon);
+ 					break;
+-				case RG_KEY_TYPE_BINARY:
++				case KEY_TYPE_BINARY:
+ 					subItem->setPixmap(0, binaryIcon);
+ 					break;
+ 				default:
+@@ -282,29 +282,29 @@
+ 	
+ 	switch (keyGetType(selected))
+ 	{
+-		case RG_KEY_TYPE_BINARY: 
++		case KEY_TYPE_BINARY: 
+ 			typeCombo->setCurrentItem(COMBO_POS_BIN);
+ 			keyValue->setEnabled(true);
+ 			keyComment->setEnabled(true);
+ 			typeCombo->setEnabled(true);
+ 			break;
+-		case RG_KEY_TYPE_STRING:
++		case KEY_TYPE_STRING:
+ 			typeCombo->setCurrentItem(COMBO_POS_STR);
+ 			keyValue->setEnabled(true);
+ 			keyComment->setEnabled(true);
+ 			typeCombo->setEnabled(true);
+ 			break;
+-		case RG_KEY_TYPE_DIR:
++		case KEY_TYPE_DIR:
+ 			typeCombo->insertItem("Directory");
+ 			typeCombo->setCurrentItem(COMBO_POS_DIR);
+ 			typeCombo->setEnabled(false);
+ 			keyValue->setEnabled(false);
+ 			keyComment->setEnabled(false);
+ 			break;
+-		case RG_KEY_TYPE_LINK:
++		case KEY_TYPE_LINK:
+ 			typeCombo->setCurrentItem(COMBO_POS_LNK);
+ 			break;
+-		case RG_KEY_TYPE_UNDEFINED:
++		case KEY_TYPE_UNDEFINED:
+ 			typeCombo->setCurrentItem(COMBO_POS_UND);
+ 			keyValue->setEnabled(false);
+ 			keyName->setEnabled(false);
+@@ -321,17 +321,17 @@
+ 		int size = keyGetDataSize(selected);
+ 		switch (keyGetType(selected))
+ 		{
+-			case RG_KEY_TYPE_BINARY: 
++			case KEY_TYPE_BINARY: 
+ 				keyGetBinary(selected, buffer, size);
+ 				break;
+-			case RG_KEY_TYPE_STRING:
++			case KEY_TYPE_STRING:
+ 				keyGetString(selected, buffer, size);
+ 				break;
+-			case RG_KEY_TYPE_DIR:
++			case KEY_TYPE_DIR:
+ 				break;
+-			case RG_KEY_TYPE_LINK:
++			case KEY_TYPE_LINK:
+ 				break;
+-			case RG_KEY_TYPE_UNDEFINED:
++			case KEY_TYPE_UNDEFINED:
+ 				break;
+ 			default:
+ 				buffer = "";
+@@ -413,7 +413,7 @@
+  
+ void MainWidgetImpl::changeSelected(QListViewItem *item)
+ {
+-	registryOpen();
++	kdbOpen();
+ 	if (!item)
+ 		return;
+ 	
+@@ -428,7 +428,7 @@
+ 	keyInit(selected);
+ 	keySetName(selected, strdup(getKeyNameFromItem(item)));
+ 	
+-	if (registryGetKey(selected))
++	if (kdbGetKey(selected))
+ 	{
+ 		showInStatusBar(strerror(errno));
+ 		delete selected;
+@@ -439,7 +439,7 @@
+ 	
+ 	selectedAccess = keyGetAccess(selected);
+ 	
+-	registryClose();
++	kdbClose();
+ 	emit keyChanged();
+ 	
+ }
+@@ -604,17 +604,17 @@
+ 
+ void MainWidgetImpl::copyValueToClipboard()
+ {
+-	registryOpen();
++	kdbOpen();
+ 	char *name = strdup(getKeyNameFromItem(keyTree->currentItem()));
+ 	char *buf;
+ 	::Key key;
+ 	keySetName(&key, name);
+ 	
+-	registryGetKey(&key);
++	kdbGetKey(&key);
+ 	
+ 	buf = new char[keyGetDataSize(&key)];
+ 	
+-	if (keyGetType(&key) == RG_KEY_TYPE_STRING)
++	if (keyGetType(&key) == KEY_TYPE_STRING)
+ 		keyGetString(&key, buf, keyGetDataSize(&key));
+ 	else
+ 		keyGetBinary(&key, (void *)buf, keyGetDataSize(&key));
+@@ -622,7 +622,7 @@
+ 	QClipboard *cp = QApplication::clipboard();
+ 	cp->setText(buf, QClipboard::Clipboard);
+ 	keyClose(&key);
+-	registryClose();
++	kdbClose();
+ }
+ 
+ bool MainWidgetImpl::canUndo()
+diff -Nurb b/src/mainwidgetimpl.h n/src/mainwidgetimpl.h
+--- b/src/mainwidgetimpl.h	2004-08-10 14:41:29.000000000 +0200
++++ n/src/mainwidgetimpl.h	2004-11-09 18:10:04.397359344 +0100
+@@ -23,7 +23,7 @@
+ 
+ extern "C"
+ {
+-	#include <registry.h>
++	#include <kdb.h>
+ }
+ #include <stack>
+ 
+diff -Nurb b/src/mainwindowimpl.cpp n/src/mainwindowimpl.cpp
+--- b/src/mainwindowimpl.cpp	2004-08-11 11:25:19.000000000 +0200
++++ n/src/mainwindowimpl.cpp	2004-11-09 18:10:04.401358736 +0100
+@@ -23,7 +23,7 @@
+ 
+ extern "C"
+ {
+-	#include <registry.h>
++	#include <kdb.h>
+ }
+ #include <errno.h>
+ #include <string.h>
+@@ -69,7 +69,7 @@
+ {
+ 	statusBar()->clear();
+ 	
+-	registryOpen();
++	kdbOpen();
+ 	
+ 	::Key width;
+ 	::Key height;
+@@ -89,11 +89,11 @@
+ 	keySetName(&y, strdup(keyPrefix + "/gui/y"));
+ 	//keySetName(&splitter, strdup(keyPrefix + "/gui/splitter"));
+ 	
+-	checkKeyMake(&width, RG_KEY_TYPE_STRING);
+-	checkKeyMake(&height, RG_KEY_TYPE_STRING);
+-	checkKeyMake(&x, RG_KEY_TYPE_STRING);
+-	checkKeyMake(&y, RG_KEY_TYPE_STRING);
+-	//checkKeyMake(&splitter, RG_KEY_TYPE_STRING);
++	checkKeyMake(&width, KEY_TYPE_STRING);
++	checkKeyMake(&height, KEY_TYPE_STRING);
++	checkKeyMake(&x, KEY_TYPE_STRING);
++	checkKeyMake(&y, KEY_TYPE_STRING);
++	//checkKeyMake(&splitter, KEY_TYPE_STRING);
+ 	
+ 	int vwidth = this->width();
+ 	int vheight = this->height();
+@@ -136,12 +136,12 @@
+ 		char *w = new char[keyGetDataSize(&splitter)];
+ 		splitter->moveSplitter(atoi(keyGetString(&splitter, w, keyGetSize(&splitter), 
+ 	}*/
+-	registryClose();
++	kdbClose();
+ }
+ 
+ void MainWindowImpl::closeEvent(QCloseEvent *e)
+ {
+-	registryOpen();
++	kdbOpen();
+ 	
+ 	::Key width;
+ 	::Key height;
+@@ -160,31 +160,31 @@
+ 	keySetName(&x, strdup(guiKeyPrefix + "x"));
+ 	keySetName(&y, strdup(guiKeyPrefix + "y"));
+ 	
+-	registryGetKey(&width);
++	kdbGetKey(&width);
+ 	keySetString(&width, strdup(QString().setNum(this->width())));
+ 	keySetComment(&width, "This is where regedit stores the width of the window");
+-	registrySetKey(&width);
++	kdbSetKey(&width);
+ 	keyClose(&width);
+ 	
+-	registryGetKey(&height);
++	kdbGetKey(&height);
+ 	keySetString(&height, strdup(QString().setNum(this->height())));
+ 	keySetComment(&height, "This is where regedit stores the height of the window");
+-	registrySetKey(&height);
++	kdbSetKey(&height);
+ 	keyClose(&height);
+ 	
+-	registryGetKey(&x);
++	kdbGetKey(&x);
+ 	keySetString(&x, strdup(QString().setNum(this->x())));
+ 	keySetComment(&x, "This is where regedit stores the x position of the window");
+-	registrySetKey(&x);
++	kdbSetKey(&x);
+ 	keyClose(&x);
+ 	
+-	registryGetKey(&y);
++	kdbGetKey(&y);
+ 	keySetString(&y, strdup(QString().setNum(this->y())));
+ 	keySetComment(&y, "This is where regedit stores the y position of the window");
+-	registrySetKey(&y);
++	kdbSetKey(&y);
+ 	keyClose(&y);
+ 	
+-	registryClose();
++	kdbClose();
+ 	
+ 	QMainWindow::closeEvent(e);
+ }
+@@ -211,14 +211,14 @@
+ 	
+ 	::Key *selected = mainWidget->getSelected();
+ 	
+-	if (keyGetType(selected) == RG_KEY_TYPE_DIR)
++	if (keyGetType(selected) == KEY_TYPE_DIR)
+ 	{
+ 	
+ 		newkey->setEnabled(true);
+ 		
+ 		KeySet childs;
+ 		ksInit(&childs);
+-		if (registryGetChildKeys(selected->key, &childs, RG_O_DIR|RG_O_SORT))
++		if (kdbGetChildKeys(selected->key, &childs, KDB_O_DIR|KDB_O_SORT))
+ 		{
+ 			statusBar()->message(strerror(errno));
+ 		}
+@@ -276,9 +276,9 @@
+ 	QPixmap undoIcon(iconDir + "/undo.png");
+ 	QPixmap redoIcon(iconDir + "/redo.png");
+ 	
+-	newkey = new QAction(QString("add new key to registry"), QIconSet(newIcon), QString("new key"), QKeySequence(CTRL + Key_N), this, "newkey action");
+-	del = new QAction(QString("delete key from registry"), QIconSet(delIcon), QString("delet key"), QKeySequence(Key_Delete), this, "delete action");
+-	reload = new QAction(QString("load the registry"), QIconSet(reloadIcon), QString("refresh"), QKeySequence(Key_F5), this, "refresh action");
++	newkey = new QAction(QString("add new key to kdb"), QIconSet(newIcon), QString("new key"), QKeySequence(CTRL + Key_N), this, "newkey action");
++	del = new QAction(QString("delete key from kdb"), QIconSet(delIcon), QString("delet key"), QKeySequence(Key_Delete), this, "delete action");
++	reload = new QAction(QString("load the kdb"), QIconSet(reloadIcon), QString("refresh"), QKeySequence(Key_F5), this, "refresh action");
+ 	undo = new QAction(QString("undo last modification"), QIconSet(undoIcon), QString("undo"), QKeySequence(CTRL + Key_Z), this, "undo action");
+ 	redo = new QAction(QString("redo last modification"), QIconSet(redoIcon), QString("redo"), QKeySequence(CTRL + Key_R), this, "redo action");
+ 	
+diff -Nurb b/src/newkeydialogimpl.cpp n/src/newkeydialogimpl.cpp
+--- b/src/newkeydialogimpl.cpp	2004-08-11 11:25:19.000000000 +0200
++++ n/src/newkeydialogimpl.cpp	2004-11-09 18:10:04.404358280 +0100
+@@ -29,7 +29,7 @@
+ using namespace std;
+ 
+ NewKeyDialogImpl::NewKeyDialogImpl(QString parentKey, QWidget *parent)
+-: NewKeyDialog(parent, "new key dialog2", true), type(RG_KEY_TYPE_STRING)
++: NewKeyDialog(parent, "new key dialog2", true), type(KEY_TYPE_STRING)
+ {
+ 	keyName->setText(parentKey + RG_KEY_DELIM);
+ 	
+@@ -88,22 +88,22 @@
+ 	switch (id)
+ 	{
+ 		case 0: 
+-			type = RG_KEY_TYPE_BINARY;
++			type = KEY_TYPE_BINARY;
+ 			keyComment->setEnabled(true);
+ 			keyValue->setEnabled(true);
+ 			break;
+ 		case 1:
+-			type = RG_KEY_TYPE_STRING;
++			type = KEY_TYPE_STRING;
+ 			keyComment->setEnabled(true);
+ 			keyValue->setEnabled(true);
+ 			break;
+ 		case 2:
+-			type = RG_KEY_TYPE_LINK;
++			type = KEY_TYPE_LINK;
+ 			keyComment->setEnabled(false);
+ 			keyValue->setEnabled(true);
+ 			break;
+ 		case 3:
+-			type = RG_KEY_TYPE_DIR;
++			type = KEY_TYPE_DIR;
+ 			keyComment->setEnabled(false);
+ 			keyValue->setEnabled(false);
+ 	}
+diff -Nurb b/src/newkeydialogimpl.h n/src/newkeydialogimpl.h
+--- b/src/newkeydialogimpl.h	2004-07-24 19:34:54.000000000 +0200
++++ n/src/newkeydialogimpl.h	2004-11-09 18:10:04.404358280 +0100
+@@ -21,7 +21,7 @@
+ #define NEWDIALOGIMPL_H
+ 
+ 
+-#include <registry.h>
++#include <kdb.h>
+ 
+ #include <qdialog.h>
+ #include "newdialog.h"
+diff -Nurb b/src/regedit_globals.cpp n/src/regedit_globals.cpp
+--- b/src/regedit_globals.cpp	2004-08-09 14:08:06.000000000 +0200
++++ n/src/regedit_globals.cpp	2004-11-09 18:10:04.408357672 +0100
+@@ -10,25 +10,25 @@
+ 
+ void checkKeyMake(Key *key, u_int8_t type)
+ {	
+-	int ret = registryGetKey(key);
++	int ret = kdbGetKey(key);
+ 	
+-	if (errno == RG_KEY_RET_NOTFOUND)
++	if (errno == KDB_RET_NOTFOUND)
+ 	{
+ 		keySetType(key, type);
+-		registrySetKey(key);
++		kdbSetKey(key);
+ 	}	
+ }
+ 
+ QString getIconDir()
+ {
+-	registryOpen();
++	kdbOpen();
+ 	::Key iconDir;
+ 	
+ 	keyInit(&iconDir);
+ 	
+ 	keySetName(&iconDir, "system/sw/regedit/gui/iconDir");
+ 	
+-	int ret = registryGetKey(&iconDir);
++	int ret = kdbGetKey(&iconDir);
+ 	
+ 	if (ret)
+ 	{
+@@ -36,7 +36,7 @@
+ 		keyClose(&iconDir);
+ 		keyInit(&iconDir);
+ 		keySetName(&iconDir, "user/sw/regedit/gui/iconDir");
+-		checkKeyMake(&iconDir, RG_KEY_TYPE_STRING);
++		checkKeyMake(&iconDir, KEY_TYPE_STRING);
+ 	}
+ 	else
+ 		//cout << "using system namespace iconDir" << endl;
+@@ -47,12 +47,12 @@
+ 		keyGetString(&iconDir, buf, keyGetDataSize(&iconDir));
+ 		
+ 		keyClose(&iconDir);
+-		registryClose();
++		kdbClose();
+ 		return QString(buf);
+ 	}
+ 
+ 	keyClose(&iconDir);
+-	registryClose();
++	kdbClose();
+ 	return QString::null;
+ 
+ }
+diff -Nurb b/src/regedit_globals.h n/src/regedit_globals.h
+--- b/src/regedit_globals.h	2004-08-09 14:08:06.000000000 +0200
++++ n/src/regedit_globals.h	2004-11-09 18:10:04.408357672 +0100
+@@ -23,7 +23,7 @@
+ 
+ extern "C"
+ {
+-	#include <registry.h>
++	#include <kdb.h>
+ }
+ #include <qstring.h>
+ 
+diff -Nurb b/src/src.pro n/src/src.pro
+--- b/src/src.pro	2004-08-09 14:08:06.000000000 +0200
++++ n/src/src.pro	2004-11-09 18:10:04.479346880 +0100
+@@ -3,7 +3,7 @@
+ # Subdir relative project main directory: ./src
+ # Target is an application:  regedit
+ 
+-LIBS += -lregistry 
++LIBS += -lregistry -lkdb
+ TARGET = regedit 
+ CONFIG += debug \
+           warn_on \
