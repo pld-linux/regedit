@@ -3,6 +3,8 @@ Summary(pl):	GUI oparte o QT do edycji kluczy Elektry (a.k.a Rejestr Linuksa)
 Name:		regedit
 Version:	0.3
 Release:	0.1
+License:	GPL
+Group:		System
 Source0:	http://members.aon.at/gregorburger/%{name}-%{version}.tar.gz
 # Source0-md5:	b4d7cb62aa4fb6733754c716069d3a90	
 Source1:	%{name}-exit.png
@@ -10,8 +12,6 @@ Patch0:		%{name}-registry2elektra_tmp_hack.patch
 Patch1:		%{name}-CFLAGS.patch
 Patch2:		%{name}-SIGSEGV_hack.patch
 Patch3:		%{name}-quit.patch
-Group:		System
-License:	GPL
 URL:		http://www.livejournal.com/users/gregorburger/
 BuildRequires:	elektra-devel
 BuildRequires:	qmake
@@ -22,8 +22,8 @@ BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 A GUI to edit Elektra (a.k.a Linux Registry) keys, based on QT.
 
 %description -l pl
-GUI oparte o QT do edycji kluczy Elektry (znanej równie¿ jako
-Rejestr Linuksa).
+GUI oparte o QT do edycji kluczy Elektry (znanej równie¿ jako Rejestr
+Linuksa).
 
 %prep
 %setup -q
@@ -34,7 +34,12 @@ Rejestr Linuksa).
 
 %build
 qmake regedit.pro
-%{__make} QTDIR=%{_prefix} CC="%{__cc}" CXX="%{__cxx}" CFLAGS="%{rpmcflags}" CXXFLAGS="%{rpmcflags}"
+%{__make} \
+	QTDIR=%{_prefix} \
+	CC="%{__cc}" \
+	CXX="%{__cxx}" \
+	CFLAGS="%{rpmcflags}" \
+	CXXFLAGS="%{rpmcflags}"
 
 %install
 rm -rf $RPM_BUILD_ROOT
@@ -45,8 +50,8 @@ install src/regedit $RPM_BUILD_ROOT%{_bindir}
 install -d $RPM_BUILD_ROOT%{_datadir}/regedit
 install icons/*.png $RPM_BUILD_ROOT%{_datadir}/regedit
 
-install -d $RPM_BUILD_ROOT%{_datadir}/applications
-install regedit.desktop $RPM_BUILD_ROOT%{_datadir}/applications/
+install -d $RPM_BUILD_ROOT%{_desktopdir}
+install regedit.desktop $RPM_BUILD_ROOT%{_desktopdir}
 
 install %{SOURCE1} $RPM_BUILD_ROOT%{_datadir}/%{name}/exit.png
 
@@ -67,4 +72,4 @@ kdb rm system/sw/regedit || :
 %defattr(644,root,root,755)
 %attr(755,root,root) %{_bindir}/*
 %{_datadir}/regedit
-%{_datadir}/applications/*
+%{_desktopdir}/*.desktop
