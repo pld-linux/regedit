@@ -1,13 +1,11 @@
-# TODO: see comments.
-Summary:	A GUI to edit Elektra keys
+Summary:	A GUI to edit Elektra (a.k.a Linux Registry) keys
+Summary(pl):	GUI oparte o QT do edycji kluczy Elektry (a.k.a Rejestr Linuksa)
 Name:		regedit
 Version:	0.3
 Release:	0.1
 Source0:	http://members.aon.at/gregorburger/%{name}-%{version}.tar.gz
 # Source0-md5:	b4d7cb62aa4fb6733754c716069d3a90	
 Source1:	%{name}-exit.png
-# Patch0 was made without looking into sources (via perl -pi -e "s/...
-# regedit builds, but segfaults during key's values manipulation.
 Patch0:		%{name}-registry2elektra_tmp_hack.patch
 Patch1:		%{name}-CFLAGS.patch
 Patch2:		%{name}-SIGSEGV_hack.patch
@@ -21,7 +19,11 @@ BuildRequires:	qt-devel
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %description
-A GUI to edit Linux Registry keys, based on QT
+A GUI to edit Elektra (a.k.a Linux Registry) keys, based on QT.
+
+%description -l pl
+GUI oparte o QT do edycji kluczy Elektry (znanej równie¿ jako
+Rejestr Linuksa).
 
 %prep
 %setup -q
