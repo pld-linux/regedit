@@ -1,0 +1,86 @@
+diff -Nurb b/src/mainwidgetimpl.cpp n/src/mainwidgetimpl.cpp
+--- b/src/mainwidgetimpl.cpp	2004-11-13 17:45:01.235503000 +0100
++++ n/src/mainwidgetimpl.cpp	2004-11-13 18:24:59.813863912 +0100
+@@ -684,3 +684,9 @@
+ {
+ 	parent->statusBar()->message(str);
+ }
++
++void MainWidgetImpl::byebye()
++{
++	//cerr << "in MainWidgetImpl::byebye()" << endl;
++	parent->close();
++}
+diff -Nurb b/src/mainwidgetimpl.h n/src/mainwidgetimpl.h
+--- b/src/mainwidgetimpl.h	2004-11-13 17:45:01.236503000 +0100
++++ n/src/mainwidgetimpl.h	2004-11-13 18:14:59.982052208 +0100
+@@ -79,6 +79,7 @@
+ 	void redo();
+ 	void addNewKey();
+ 	void deleteKey();
++	void byebye();
+ 	
+ private:
+ 	void fillUpKeyTree(::Key *root, QListViewItem *item);
+diff -Nurb b/src/mainwindowimpl.cpp n/src/mainwindowimpl.cpp
+--- b/src/mainwindowimpl.cpp	2004-11-13 17:45:01.237502000 +0100
++++ n/src/mainwindowimpl.cpp	2004-11-13 18:24:49.578419936 +0100
+@@ -38,6 +38,7 @@
+ #include <qaction.h>
+ #include <qkeysequence.h>
+ #include <qstatusbar.h>
++#include <qapplication.h>
+ 
+ MainWindowImpl::MainWindowImpl (QWidget *parent, const char *name, WFlags fl)
+ : QMainWindow(parent, name, fl)
+@@ -56,6 +57,7 @@
+ 	connect(redo, SIGNAL(activated()), mainWidget, SLOT(redo()));
+ 	connect(del, SIGNAL(activated()), mainWidget, SLOT(deleteKey()));
+ 	connect(newkey, SIGNAL(activated()), mainWidget, SLOT(addNewKey()));
++	connect(quit, SIGNAL(activated()), mainWidget, SLOT(byebye()));
+ 	
+ 	show();
+ }
+@@ -186,6 +188,7 @@
+ 	
+ 	kdbClose();
+ 	
++	//cerr << "in MainWindowImpl::closeEvent(QCloseEvent *e)" << endl;
+ 	QMainWindow::closeEvent(e);
+ }
+ 
+@@ -275,12 +278,14 @@
+ 	QPixmap reloadIcon(iconDir + "/reload.png");
+ 	QPixmap undoIcon(iconDir + "/undo.png");
+ 	QPixmap redoIcon(iconDir + "/redo.png");
++	QPixmap quitIcon(iconDir + "/exit.png");
+ 	
+ 	newkey = new QAction(QString("add new key to kdb"), QIconSet(newIcon), QString("new key"), QKeySequence(CTRL + Key_N), this, "newkey action");
+ 	del = new QAction(QString("delete key from kdb"), QIconSet(delIcon), QString("delet key"), QKeySequence(Key_Delete), this, "delete action");
+ 	reload = new QAction(QString("load the kdb"), QIconSet(reloadIcon), QString("refresh"), QKeySequence(Key_F5), this, "refresh action");
+ 	undo = new QAction(QString("undo last modification"), QIconSet(undoIcon), QString("undo"), QKeySequence(CTRL + Key_Z), this, "undo action");
+ 	redo = new QAction(QString("redo last modification"), QIconSet(redoIcon), QString("redo"), QKeySequence(CTRL + Key_R), this, "redo action");
++	quit = new QAction(QString("quit"), QIconSet(quitIcon), QString("quit"), QKeySequence(CTRL + Key_Q), this, "quit action");
+ 	
+ 	newkey->addTo(editToolBar);
+ 	del->addTo(editToolBar);
+@@ -288,6 +293,8 @@
+ 	reload->addTo(editToolBar);	
+ 	undo->addTo(editToolBar);
+ 	redo->addTo(editToolBar);
++	editToolBar->addSeparator();
++	quit->addTo(editToolBar);
+ 	
+ 	newkey->setEnabled(false);
+ 	del->setEnabled(false);
+diff -Nurb b/src/mainwindowimpl.h n/src/mainwindowimpl.h
+--- b/src/mainwindowimpl.h	2004-08-07 19:57:01.000000000 +0200
++++ n/src/mainwindowimpl.h	2004-11-13 17:45:45.894714000 +0100
+@@ -57,6 +57,7 @@
+ 	QAction *reload;
+ 	QAction *del;
+ 	QAction *newkey;
++	QAction *quit;
+ };
+  
+ #endif
