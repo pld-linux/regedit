@@ -1,0 +1,12 @@
+diff -Nurb n/src/keymodifycommand.cpp d/src/keymodifycommand.cpp
+--- n/src/keymodifycommand.cpp	2004-11-09 18:10:04.000000000 +0100
++++ d/src/keymodifycommand.cpp	2004-11-10 01:47:38.980793600 +0100
+@@ -44,7 +44,7 @@
+ 	keyInit(newKey);
+ 	keyDup(selected, newKey);
+ 	
+-	oldIcon = *item->pixmap(0);
++	//oldIcon = *item->pixmap(0);
+ 	
+ 	char *comment = strdup(mainWidget->keyComment->text());
+ 	keySetComment(newKey, comment);
