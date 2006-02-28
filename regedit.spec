@@ -4,9 +4,9 @@ Name:		regedit
 Version:	0.3
 Release:	0.1
 License:	GPL
-Group:		System
+Group:		Base
 Source0:	http://download.berlios.de/tlr-regedit/%{name}-%{version}.tar.gz
-# Source0-md5:	b4d7cb62aa4fb6733754c716069d3a90	
+# Source0-md5:	b4d7cb62aa4fb6733754c716069d3a90
 Source1:	%{name}-exit.png
 Patch0:		%{name}-registry2elektra_tmp_hack.patch
 Patch1:		%{name}-CFLAGS.patch
@@ -60,7 +60,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %post
 # Set the icons directory for myself
-kdb set -t string system/sw/regedit/gui/iconDir "/usr/share/regedit"
+kdb set -t string system/sw/regedit/gui/iconDir "%{_datadir}/regedit"
 
 %postun
 # Destroy the icons directory for myself
