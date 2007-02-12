@@ -1,5 +1,5 @@
 Summary:	A GUI to edit Elektra (a.k.a Linux Registry) keys
-Summary(pl.UTF-8):   GUI oparte o QT do edycji kluczy Elektry (a.k.a Rejestr Linuksa)
+Summary(pl.UTF-8):	GUI oparte o QT do edycji kluczy Elektry (a.k.a Rejestr Linuksa)
 Name:		regedit
 Version:	0.3
 Release:	0.1
